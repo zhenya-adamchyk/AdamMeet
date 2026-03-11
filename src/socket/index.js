@@ -8,7 +8,9 @@ const options = {
   transports: ['websocket'],
 }
 
-const socket = io('http://localhost:3001', options)
+// In dev, Vite proxies `/socket.io` to backend.
+// In production, frontend is served by the same server.
+const socket = io(undefined, options)
 
 export default socket
 

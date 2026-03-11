@@ -9,7 +9,12 @@ import { SocketActions } from './src/socket/actions.js'
 
 const app = express()
 const server = createServer(app)
-const io = new Server(server)
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    methods: ['GET', 'POST'],
+  },
+})
 
 const PORT = process.env.PORT || 3001
 const rootDir = path.dirname(fileURLToPath(import.meta.url))

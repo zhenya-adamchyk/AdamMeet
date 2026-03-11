@@ -5,12 +5,27 @@ import {Server} from "socket.io";
 
 import {validate, version} from "uuid";
 import {SocketActions} from "./src/socket/actions.js";
+import path from "node:path";
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3001;
+
+const __dirname1 = path.resolve();
+
+if (process.env.NODE_ENV === "production") {
+    app.use(express.static(path.join(__dirname1, "dist")));
+
+    app.get("*", (req, res) =>
+        res.sendFile(path.resolve(__dirname1, "dist", "index.html"))
+    );
+} else {
+    app.get("/", (req, res) => {
+        res.send("API is running..");
+    });
+}
 
 function getRooms() {
     const { rooms } = io.sockets.adapter;

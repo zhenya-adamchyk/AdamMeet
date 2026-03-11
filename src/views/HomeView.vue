@@ -1,4 +1,4 @@
-<script setup>
+<script lang="ts" setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { v4 as uuidv4 } from 'uuid';

@@ -9,7 +9,9 @@
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "noImplicitAny": false,
+    "allowJs": true,
   },
   "files": [],
   "references": [

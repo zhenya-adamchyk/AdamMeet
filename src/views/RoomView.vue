@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+<script setup>
 import { computed, onBeforeUnmount, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -31,7 +31,7 @@ const webrtc = useWebRTCStore();
 watch(
     roomID,
     (id) => {
-      webrtc.join(id as string);
+      webrtc.join(id);
     },
     { immediate: true }
 );
@@ -58,7 +58,7 @@ const provideMediaRef = webrtc.provideMediaRef;
           autoplay
           playsinline
           :muted="clientID === LOCAL_VIDEO"
-          :ref="(el) => provideMediaRef(clientID, el as HTMLMediaElement)"
+          :ref="(el) => provideMediaRef(clientID, el)"
       />
     </div>
   </div>

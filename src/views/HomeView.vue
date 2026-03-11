@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+<script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { v4 } from 'uuid';
@@ -9,7 +9,7 @@ import {SocketActions} from "@/socket/actions.js";
 const router = useRouter();
 const rooms = ref([]);
 
-function joinRoom(roomID: string) {
+function joinRoom(roomID) {
   router.push(`/room/${roomID}`);
 }
 

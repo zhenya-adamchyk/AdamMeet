@@ -10,9 +10,8 @@
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "noImplicitAny": false,
-    "allowJs": true,
   },
+  "include": ["src", "src/types", "types"],
   "files": [],
   "references": [
     {

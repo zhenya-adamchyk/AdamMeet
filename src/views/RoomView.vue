@@ -4,24 +4,25 @@ import { useRoute } from 'vue-router';
 
 import { useWebRTCStore, LOCAL_VIDEO } from '../stores/webrtc';
 
-function layout(clientsNumber = 1) {
-  const pairs = Array.from({ length: clientsNumber }).reduce((acc, _, index, arr) => {
-    if (index % 2 === 0) acc.push(arr.slice(index, index + 2));
-    return acc;
-  }, []);
-
-  const rowsNumber = pairs.length || 1;
-  const height = `${100 / rowsNumber}%`;
-
-  return pairs
-      .map((row, index, arr) => {
-        if (index === arr.length - 1 && row.length === 1) {
-          return [{ width: '100%', height }];
-        }
-        return row.map(() => ({ width: '50%', height }));
-      })
-      .flat();
-}
+// function layout(clientsNumber = 1) {
+//   const pairs = Array.from({ length: clientsNumber }).reduce((acc, _, index, arr) => {
+//     if (index % 2 === 0) acc.push(arr.slice(index, index + 2));
+//     return acc;
+//   }, []);
+//
+//   const rowsNumber = pairs.length || 1;
+//   const height = `${100 / rowsNumber}%`;
+//   console.log(pairs)
+//
+//   return pairs
+//       .map((row, index, arr) => {
+//         if (index === arr.length - 1 && row.length === 1) {
+//           return [{ width: '100%', height }];
+//         }
+//         return row.map(() => ({ width: '50%', height }));
+//       })
+//       .flat();
+// }
 
 const route = useRoute();
 const roomID = computed(() => route.params.id);
@@ -30,7 +31,7 @@ const webrtc = useWebRTCStore();
 watch(
     roomID,
     (id) => {
-      webrtc.join(id);
+      webrtc.join(id as string);
     },
     { immediate: true }
 );
@@ -41,7 +42,7 @@ onBeforeUnmount(() => {
 
 const clients = computed(() => webrtc.clients);
 const provideMediaRef = webrtc.provideMediaRef;
-const videoLayout = computed(() => layout(webrtc.clients.length));
+// const videoLayout = computed(() => layout(webrtc.clients.length));
 </script>
 
 <template>
@@ -51,14 +52,13 @@ const videoLayout = computed(() => layout(webrtc.clients.length));
         :key="clientID"
         class="tile"
         :id="clientID"
-        :style="videoLayout[index]"
     >
       <video
           class="video"
           autoplay
           playsinline
           :muted="clientID === LOCAL_VIDEO"
-          :ref="(el) => provideMediaRef(clientID, el)"
+          :ref="(el) => provideMediaRef(clientID, el as HTMLMediaElement)"
       />
     </div>
   </div>

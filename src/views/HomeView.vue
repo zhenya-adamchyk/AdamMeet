@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 } from 'uuid';
 
 import socket from '../socket';
 import {SocketActions} from "@/socket/actions.js";
@@ -9,12 +9,12 @@ import {SocketActions} from "@/socket/actions.js";
 const router = useRouter();
 const rooms = ref([]);
 
-function joinRoom(roomID) {
+function joinRoom(roomID: string) {
   router.push(`/room/${roomID}`);
 }
 
 function createRoom() {
-  router.push(`/room/${uuidv4()}`);
+  router.push(`/room/${v4()}`);
 }
 
 function handleShareRooms({ rooms: nextRooms = [] } = {}) {

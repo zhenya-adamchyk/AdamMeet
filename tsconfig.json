@@ -11,7 +11,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
   },
-  "include": ["src", "src/types", "types"],
+//  "include": ["src/types", "types"],
   "files": [],
   "references": [
     {

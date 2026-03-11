@@ -1,5 +1,6 @@
 import express from 'express'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { validate, version } from 'uuid'
@@ -11,12 +12,13 @@ const server = createServer(app)
 const io = new Server(server)
 
 const PORT = process.env.PORT || 3001
-const rootDir = path.resolve()
+const rootDir = path.dirname(fileURLToPath(import.meta.url))
+const distDir = path.join(rootDir, 'dist')
 
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(rootDir, 'dist')))
+  app.use(express.static(distDir))
 
-  app.get('*', (req, res) => res.sendFile(path.resolve(rootDir, 'dist', 'index.html')))
+  app.get(/.*/, (req, res) => res.sendFile(path.join(distDir, 'index.html')))
 } else {
   app.get('/', (req, res) => {
     res.send('API is running..')

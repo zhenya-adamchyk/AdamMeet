@@ -11,6 +11,8 @@ export const useWebRTCStore = defineStore('webrtc', () => {
   const clients = ref([])
   const roomID = ref('')
   const started = ref(false)
+  const isAudioEnabled = ref(true)
+  const isVideoEnabled = ref(true)
 
   let peerConnections = {}
   let peerMediaElements = { [LOCAL_VIDEO]: null }
@@ -46,6 +48,22 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     if (!el || !localMediaStream) return
     el.volume = 0
     if (el.srcObject !== localMediaStream) el.srcObject = localMediaStream
+  }
+
+  const applyLocalTrackStates = () => {
+    if (!localMediaStream) return
+    localMediaStream.getAudioTracks().forEach((t) => (t.enabled = isAudioEnabled.value))
+    localMediaStream.getVideoTracks().forEach((t) => (t.enabled = isVideoEnabled.value))
+  }
+
+  const toggleAudio = () => {
+    isAudioEnabled.value = !isAudioEnabled.value
+    applyLocalTrackStates()
+  }
+
+  const toggleVideo = () => {
+    isVideoEnabled.value = !isVideoEnabled.value
+    applyLocalTrackStates()
   }
 
   async function handleNewPeer({ peerID, createOffer }) {
@@ -148,6 +166,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
       video: { width: 600, height: 600 },
     })
 
+    applyLocalTrackStates()
     addClient(LOCAL_VIDEO)
     attachLocalStreamIfPossible()
   }
@@ -219,9 +238,13 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     clients,
     roomID,
     started,
+    isAudioEnabled,
+    isVideoEnabled,
     join,
     leave,
     provideMediaRef,
+    toggleAudio,
+    toggleVideo,
   }
 })
 

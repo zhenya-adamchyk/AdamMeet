@@ -32,7 +32,6 @@ export const useWebRTCStore = defineStore('webrtc', () => {
       return
     }
 
-    // In case element isn't mounted yet (many clients)
     const interval = setInterval(() => {
       if (!running) return clearInterval(interval)
       const node = peerMediaElements[id]
@@ -91,7 +90,6 @@ export const useWebRTCStore = defineStore('webrtc', () => {
       tracksNumber += 1
 
       if (tracksNumber === 2) {
-        // video & audio tracks received
         tracksNumber = 0
         if (!remoteStream) return
         addClient(peerID)
@@ -202,9 +200,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
 
     try {
       localMediaStream?.getTracks().forEach((track) => track.stop())
-    } catch {
-      // ignore
-    }
+    } catch { }
 
     socket.emit(SocketActions.LEAVE)
 
@@ -214,9 +210,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     Object.values(peerConnections).forEach((pc) => {
       try {
         pc?.close()
-      } catch {
-        // ignore
-      }
+      } catch { }
     })
 
     peerConnections = {}

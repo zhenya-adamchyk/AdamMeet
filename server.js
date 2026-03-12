@@ -75,7 +75,9 @@ io.on('connection', (socket) => {
   function leaveRoom() {
     const { rooms } = socket
 
-    Array.from(rooms).forEach((roomId) => {
+    Array.from(rooms)
+      .filter((roomId) => roomId !== socket.id)
+      .forEach((roomId) => {
       const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
 
       clientsIDs.forEach((clientID) => {

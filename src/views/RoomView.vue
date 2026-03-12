@@ -106,7 +106,6 @@ const videoLayout = computed(() => layout(webrtc.clients.length));
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #0b0f19;
 }
 
 .roomGrid {
@@ -122,7 +121,7 @@ const videoLayout = computed(() => layout(webrtc.clients.length));
 .video {
   width: 100%;
   height: 100%;
-  border-radius: 10px;
+  border-radius: 30px;
   background: #000;
   object-fit: cover;
 }

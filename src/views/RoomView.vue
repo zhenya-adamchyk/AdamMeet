@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia';
 import { useRoute, useRouter } from 'vue-router';
 
 import { useWebRTCStore, LOCAL_VIDEO } from '../stores/webrtc';
+import { useDeviceStore } from '../stores/device'
 
 function layout(clientsNumber = 1) {
   if (!clientsNumber) return [];
@@ -23,7 +24,9 @@ const router = useRouter();
 const roomID = computed(() => route.params.id);
 const roomName = computed(() => route.query?.name);
 const webrtc = useWebRTCStore();
+const device = useDeviceStore()
 const { isAudioEnabled, isVideoEnabled, started } = storeToRefs(webrtc);
+const { isMobile } = storeToRefs(device)
 
 watch(
     [roomID, roomName],
@@ -52,7 +55,27 @@ const videoLayout = computed(() => layout(gridClients.value.length));
 
 <template>
   <div class="roomPage">
-    <div class="roomGrid">
+    <div
+        v-if="isMobile"
+        class="mobileGrid"
+        :class="{ single: (remoteClients.length ? remoteClients.length : clients.length) <= 1 }"
+    >
+      <div
+          v-for="clientID in (remoteClients.length ? remoteClients : clients)"
+          :key="clientID"
+          class="mobileTile"
+      >
+        <video
+            class="video"
+            autoplay
+            playsinline
+            :muted="clientID === LOCAL_VIDEO"
+            :ref="(el) => provideMediaRef(clientID, el)"
+        />
+      </div>
+    </div>
+
+    <div v-else class="roomGrid">
       <div
           v-for="(clientID, index) in gridClients"
           :key="clientID"
@@ -70,7 +93,7 @@ const videoLayout = computed(() => layout(gridClients.value.length));
     </div>
 
     <video
-        v-if="showLocalPreview"
+        v-if="showLocalPreview && !isMobile"
         class="video localPreview"
         autoplay
         playsinline
@@ -123,6 +146,36 @@ const videoLayout = computed(() => layout(gridClients.value.length));
   padding: 12px;
   justify-content: center;
   align-content: center;
+}
+
+.mobileGrid {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 12px;
+  padding: 12px;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  align-items: stretch;
+  scroll-snap-type: y mandatory;
+}
+
+.mobileGrid.single {
+  justify-content: center;
+}
+
+.mobileTile {
+  border-radius: 18px;
+  overflow: hidden;
+  width: 100%;
+  height: calc(100vh - 24px - 88px - env(safe-area-inset-bottom));
+  scroll-snap-align: start;
+}
+
+.mobileTile .video {
+  border-radius: 0;
 }
 
 .video {

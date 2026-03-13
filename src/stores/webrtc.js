@@ -169,7 +169,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     attachLocalStreamIfPossible()
   }
 
-  async function join(nextRoomID) {
+  async function join(nextRoomID, { name }) {
     if (!nextRoomID) return
 
     const next = String(nextRoomID)
@@ -184,7 +184,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
 
     try {
       await startCapture()
-      socket.emit(SocketActions.JOIN, { room: roomID.value })
+      socket.emit(SocketActions.JOIN, { room: roomID.value, name: name })
     } catch (e) {
       console.error('Error getting userMedia:', e)
     }

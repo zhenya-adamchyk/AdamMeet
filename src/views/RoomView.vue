@@ -21,13 +21,14 @@ function layout(clientsNumber = 1) {
 const route = useRoute();
 const router = useRouter();
 const roomID = computed(() => route.params.id);
+const roomName = computed(() => route.query?.name);
 const webrtc = useWebRTCStore();
 const { isAudioEnabled, isVideoEnabled, started } = storeToRefs(webrtc);
 
 watch(
-    roomID,
-    (id) => {
-      webrtc.join(id);
+    [roomID, roomName],
+    ([id, name]) => {
+      webrtc.join(id, { name });
     },
     { immediate: true }
 );
@@ -79,7 +80,7 @@ const videoLayout = computed(() => layout(gridClients.value.length));
 
     <div class="controls" role="group" aria-label="Call controls">
       <button
-          class="controlBtn"
+          class="btn pill"
           :class="{ off: !isAudioEnabled }"
           type="button"
           :disabled="!started"
@@ -90,7 +91,7 @@ const videoLayout = computed(() => layout(gridClients.value.length));
       </button>
 
       <button
-          class="controlBtn"
+          class="btn pill"
           :class="{ off: !isVideoEnabled }"
           type="button"
           :disabled="!started"
@@ -100,7 +101,7 @@ const videoLayout = computed(() => layout(gridClients.value.length));
         {{ isVideoEnabled ? 'Video off' : 'Video on' }}
       </button>
 
-      <button class="controlBtn leave" type="button" @click="exitMeet">Leave</button>
+      <button class="btn pill danger" type="button" @click="exitMeet">Leave</button>
     </div>
   </div>
 </template>
@@ -154,39 +155,6 @@ const videoLayout = computed(() => layout(gridClients.value.length));
   background: rgba(17, 24, 39, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(10px);
-}
-
-.controlBtn {
-  padding: 12px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.controlBtn:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-
-.controlBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.controlBtn.off {
-  background: rgba(239, 68, 68, 0.18);
-  border-color: rgba(239, 68, 68, 0.35);
-}
-
-.controlBtn.leave {
-  background: #e11d48;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.controlBtn.leave:hover {
-  filter: brightness(1.05);
 }
 </style>
 

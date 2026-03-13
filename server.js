@@ -10,8 +10,7 @@ import { SocketActions } from './src/socket/actions.js'
 const app = express()
 const server = createServer(app)
 const io = new Server(server, {
-  cors: {
-    origin: true,
+  cors: { origin: true,
     methods: ['GET', 'POST'],
   },
 })
@@ -30,13 +29,27 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
+const roomNameById = new Map()
+
 function getRooms() {
   const { rooms } = io.sockets.adapter
   return Array.from(rooms.keys()).filter((roomID) => validate(roomID) && version(roomID) === 4)
 }
 
 function shareRooms() {
-  io.emit(SocketActions.SHARE_ROOMS, { rooms: getRooms() })
+  const roomIDs = getRooms()
+  const nextRoomNameById = new Map()
+
+  const rooms = roomIDs.map((id) => {
+    const name = roomNameById.get(id) || ''
+    nextRoomNameById.set(id, name)
+    return { id, name }
+  })
+
+  roomNameById.clear()
+  for (const [id, name] of nextRoomNameById.entries()) roomNameById.set(id, name)
+
+  io.emit(SocketActions.SHARE_ROOMS, { rooms })
 }
 
 io.on('connection', (socket) => {
@@ -50,6 +63,8 @@ io.on('connection', (socket) => {
     if (Array.from(rooms).includes(roomId)) {
       return console.warn(`Room ${roomId} is already in room`)
     }
+
+    roomNameById.set(roomId, config.name)
 
     const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
 

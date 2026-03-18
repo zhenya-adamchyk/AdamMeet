@@ -4,13 +4,14 @@ import { useRouter } from 'vue-router'
 import { v4 } from 'uuid'
 
 import socket from '@/socket'
-import { SocketActions, type ShareRoomsPayload, type RoomSummary } from '@/socket/actions'
+import { SocketActions } from '@/socket/actions'
+import { Room } from '@/interfaces/index'
 
 const router = useRouter()
-const rooms = ref<RoomSummary[]>([])
+const rooms = ref<Room[]>([])
 const newRoomName = ref('')
 
-function joinRoom(room: RoomSummary) {
+function joinRoom(room: Room) {
   router.push({ path: `/room/${room.id}`, query: { name: room.name } })
 }
 
@@ -22,7 +23,7 @@ function createRoom() {
   newRoomName.value = ''
 }
 
-function handleShareRooms(payload: ShareRoomsPayload) {
+function handleShareRooms(payload: { rooms: Room[] }) {
   rooms.value = payload?.rooms ?? []
 }
 

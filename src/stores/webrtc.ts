@@ -7,15 +7,6 @@ import { SocketActions } from '@/socket/actions'
 
 export const LOCAL_VIDEO = 'LOCAL_VIDEO'
 
-type PeerConnections = Record<string, RTCPeerConnection>
-type MediaElements = Record<string, HTMLVideoElement | null>
-
-type AddPeerPayload = { peerID: string; createOffer: boolean }
-type RemovePeerPayload = { peerID: string }
-type RelaySdpPayload = { peerID: string; sessionDescription: RTCSessionDescriptionInit }
-type RelayIcePayload = { peerID: string; iceCandidate: RTCIceCandidateInit }
-type JoinConfig = { name?: string }
-
 export const useWebRTCStore = defineStore('webrtc', () => {
   const clients = ref<string[]>([])
   const roomID = ref('')
@@ -23,8 +14,8 @@ export const useWebRTCStore = defineStore('webrtc', () => {
   const isAudioEnabled = ref(true)
   const isVideoEnabled = ref(true)
 
-  let peerConnections: PeerConnections = {}
-  let peerMediaElements: MediaElements = { [LOCAL_VIDEO]: null }
+  let peerConnections: Record<string, RTCPeerConnection> = {}
+  let peerMediaElements: Record<string, HTMLVideoElement | null> = { [LOCAL_VIDEO]: null }
   let localMediaStream: MediaStream | null = null
   let running = false
 
@@ -74,7 +65,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     applyLocalTrackStates()
   }
 
-  async function handleNewPeer({ peerID, createOffer }: AddPeerPayload) {
+  async function handleNewPeer({ peerID, createOffer }: { peerID: string; createOffer: boolean }) {
     if (peerID in peerConnections) {
       console.warn(`Already connected to peer ${peerID}`)
       return
@@ -90,7 +81,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
         socket.emit(SocketActions.RELAY_ICE, {
           peerID,
           iceCandidate: event.candidate.toJSON(),
-        } satisfies RelayIcePayload)
+        })
       }
     }
 
@@ -120,14 +111,14 @@ export const useWebRTCStore = defineStore('webrtc', () => {
       socket.emit(SocketActions.RELAY_SDP, {
         peerID,
         sessionDescription: offer,
-      } satisfies RelaySdpPayload)
+      })
     }
   }
 
   async function setRemoteMedia({
     peerID,
     sessionDescription: remoteDescription,
-  }: RelaySdpPayload) {
+  }: { peerID: string; sessionDescription: RTCSessionDescriptionInit }) {
     const pc = peerConnections[peerID]
     if (!pc) return
 
@@ -140,15 +131,15 @@ export const useWebRTCStore = defineStore('webrtc', () => {
       socket.emit(SocketActions.RELAY_SDP, {
         peerID,
         sessionDescription: answer,
-      } satisfies RelaySdpPayload)
+      })
     }
   }
 
-  function handleIceCandidate({ peerID, iceCandidate }: RelayIcePayload) {
+  function handleIceCandidate({ peerID, iceCandidate }: { peerID: string; iceCandidate: RTCIceCandidateInit }) {
     peerConnections[peerID]?.addIceCandidate(new RTCIceCandidate(iceCandidate))
   }
 
-  function handleRemovePeer({ peerID }: RemovePeerPayload) {
+  function handleRemovePeer({ peerID }: { peerID: string }) {
     peerConnections[peerID]?.close()
 
     delete peerConnections[peerID]
@@ -182,7 +173,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     attachLocalStreamIfPossible()
   }
 
-  async function join(nextRoomID: unknown, { name }: JoinConfig = {}) {
+  async function join(nextRoomID: unknown, { name }: { name: string }) {
     if (!nextRoomID) return
 
     const next = String(nextRoomID)

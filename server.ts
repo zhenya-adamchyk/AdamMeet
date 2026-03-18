@@ -5,7 +5,8 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { validate, version } from 'uuid'
 
-import { SocketActions, type RoomSummary, type ShareRoomsPayload } from './src/socket/actions.js'
+import { SocketActions } from './src/socket/actions.js'
+import { Room } from './src/interfaces/rooms.js'
 
 const app = express()
 const server = createServer(app)
@@ -40,7 +41,7 @@ function shareRooms() {
   const roomIDs = getRooms()
   const nextRoomNameById = new Map<string, string>()
 
-  const rooms: RoomSummary[] = roomIDs.map((id) => {
+  const rooms: Room[] = roomIDs.map((id) => {
     const name = roomNameById.get(id) || ''
     nextRoomNameById.set(id, name)
     return { id, name }
@@ -49,7 +50,7 @@ function shareRooms() {
   roomNameById.clear()
   for (const [id, name] of nextRoomNameById.entries()) roomNameById.set(id, name)
 
-  io.emit(SocketActions.SHARE_ROOMS, { rooms } satisfies ShareRoomsPayload)
+  io.emit(SocketActions.SHARE_ROOMS, { rooms })
 }
 
 io.on('connection', (socket) => {

@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { validate, version } from 'uuid';
-import { SocketActions } from './src/socket/actions.js';
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -41,12 +40,12 @@ function shareRooms() {
     roomNameById.clear();
     for (const [id, name] of nextRoomNameById.entries())
         roomNameById.set(id, name);
-    io.emit(SocketActions.SHARE_ROOMS, { rooms });
+    io.emit("shareRooms" /* SocketActions.SHARE_ROOMS */, { rooms });
 }
 io.on('connection', (socket) => {
     shareRooms();
     console.log('socket connected');
-    socket.on(SocketActions.JOIN, (config) => {
+    socket.on("join" /* SocketActions.JOIN */, (config) => {
         const roomId = config.room;
         const { rooms } = socket;
         if (Array.from(rooms).includes(roomId)) {
@@ -55,11 +54,11 @@ io.on('connection', (socket) => {
         roomNameById.set(roomId, config.name ?? '');
         const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
         clientsIDs.forEach((clientID) => {
-            io.to(clientID).emit(SocketActions.ADD_PEER, {
+            io.to(clientID).emit("addPeer" /* SocketActions.ADD_PEER */, {
                 peerID: socket.id,
                 createOffer: false,
             });
-            socket.emit(SocketActions.ADD_PEER, {
+            socket.emit("addPeer" /* SocketActions.ADD_PEER */, {
                 peerID: clientID,
                 createOffer: true,
             });
@@ -68,7 +67,7 @@ io.on('connection', (socket) => {
         shareRooms();
     });
     socket.on('disconnect', leaveRoom);
-    socket.on(SocketActions.LEAVE, leaveRoom);
+    socket.on("leave" /* SocketActions.LEAVE */, leaveRoom);
     function leaveRoom() {
         const { rooms } = socket;
         Array.from(rooms)
@@ -76,10 +75,10 @@ io.on('connection', (socket) => {
             .forEach((roomId) => {
             const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
             clientsIDs.forEach((clientID) => {
-                io.to(clientID).emit(SocketActions.REMOVE_PEER, {
+                io.to(clientID).emit("removePeer" /* SocketActions.REMOVE_PEER */, {
                     peerID: socket.id,
                 });
-                socket.emit(SocketActions.REMOVE_PEER, {
+                socket.emit("removePeer" /* SocketActions.REMOVE_PEER */, {
                     peerID: clientID,
                 });
             });
@@ -87,14 +86,14 @@ io.on('connection', (socket) => {
         });
         shareRooms();
     }
-    socket.on(SocketActions.RELAY_SDP, ({ peerID, sessionDescription }) => {
-        io.to(peerID).emit(SocketActions.SESSION_DESCRIPTION, {
+    socket.on("relaySdp" /* SocketActions.RELAY_SDP */, ({ peerID, sessionDescription }) => {
+        io.to(peerID).emit("sessionDescription" /* SocketActions.SESSION_DESCRIPTION */, {
             peerID: socket.id,
             sessionDescription,
         });
     });
-    socket.on(SocketActions.RELAY_ICE, ({ peerID, iceCandidate }) => {
-        io.to(peerID).emit(SocketActions.ICE_CANDIDATE, {
+    socket.on("relayICE" /* SocketActions.RELAY_ICE */, ({ peerID, iceCandidate }) => {
+        io.to(peerID).emit("iceCandidate" /* SocketActions.ICE_CANDIDATE */, {
             peerID: socket.id,
             iceCandidate,
         });

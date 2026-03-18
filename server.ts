@@ -57,17 +57,17 @@ io.on('connection', (socket) => {
   shareRooms()
   console.log('socket connected')
 
-  socket.on(SocketActions.JOIN, (config: { room: string; name?: string }) => {
-    const roomId = config.room
+  socket.on(SocketActions.JOIN, (config: { roomID: string; name: string }) => {
+    const { roomID, name } = config
     const { rooms } = socket
 
-    if (Array.from(rooms).includes(roomId)) {
-      return console.warn(`Room ${roomId} is already in room`)
+    if (Array.from(rooms).includes(roomID)) {
+      return console.warn(`Room ${roomID} is already in room`)
     }
 
-    roomNameById.set(roomId, config.name ?? '')
+    roomNameById.set(roomID, name)
 
-    const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+    const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomID) || [])
 
     clientsIDs.forEach((clientID) => {
       io.to(clientID).emit(SocketActions.ADD_PEER, {
@@ -81,7 +81,7 @@ io.on('connection', (socket) => {
       })
     })
 
-    socket.join(roomId)
+    socket.join(roomID)
     shareRooms()
   })
 

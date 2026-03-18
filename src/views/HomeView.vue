@@ -17,10 +17,8 @@ function joinRoom(room: Room) {
 
 function createRoom() {
   const id = v4()
-  const name = newRoomName.value.trim()
-  if (!name) return
-  router.push({ path: `/room/${id}`, query: { name } })
-  newRoomName.value = ''
+  if (!newRoomName.value) return
+  router.push({ path: `/room/${id}`, query: { name: newRoomName.value } })
 }
 
 function handleShareRooms(payload: { rooms: Room[] }) {
@@ -46,15 +44,14 @@ onBeforeUnmount(() => {
         </div>
         <div class="create">
           <input
-            v-model="newRoomName"
+            v-model.trim="newRoomName"
             class="input"
             type="text"
             placeholder="Room name"
             required
             maxlength="20"
-            @keydown.enter.prevent="createRoom"
           />
-          <button class="btn primary" type="button" :disabled="!newRoomName.trim()" @click="createRoom">
+          <button class="btn primary" type="button" :disabled="!newRoomName" @click="createRoom">
             Create New Room
           </button>
         </div>

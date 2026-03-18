@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useWebRTCStore, LOCAL_VIDEO } from '../stores/webrtc'
 import { useDeviceStore } from '../stores/device'
 
-type LayoutItem = { width: string; height: string }
-
-function layout(clientsNumber = 1): LayoutItem[] {
+function layout(clientsNumber = 1): { width: string; height: string }[] {
   if (!clientsNumber) return []
   const gap = 12
 
@@ -24,28 +22,20 @@ function layout(clientsNumber = 1): LayoutItem[] {
 const route = useRoute()
 const router = useRouter()
 
-const roomID = computed(() => {
-  const id = route.params.id
-  return (Array.isArray(id) ? id[0] : id) ?? ''
-})
+function singleString(value: string | string[]): string {
+  const v = Array.isArray(value) ? value[0] : value
+  return String(v)
+}
 
-const roomName = computed(() => {
-  const name = route.query?.name
-  return (Array.isArray(name) ? name[0] : name) ?? ''
-})
+const roomID = singleString(route.params.id)
+const roomName = singleString(route.query?.name)
 
 const webrtc = useWebRTCStore()
 const device = useDeviceStore()
 const { clients, isAudioEnabled, isVideoEnabled, started } = storeToRefs(webrtc)
 const { isMobile } = storeToRefs(device)
 
-watch(
-  [roomID, roomName],
-  ([id, name]) => {
-    webrtc.join(id, { name })
-  },
-  { immediate: true },
-)
+webrtc.join(roomID, roomName)
 
 onBeforeUnmount(() => {
   webrtc.leave()
@@ -120,7 +110,7 @@ const videoLayout = computed(() => layout(gridClients.value.length))
           :aria-pressed="!isAudioEnabled"
           @click="webrtc.toggleAudio"
       >
-        {{ isAudioEnabled ? 'Mute' : 'Unmute' }}
+        Sound
       </button>
 
       <button
@@ -131,7 +121,7 @@ const videoLayout = computed(() => layout(gridClients.value.length))
           :aria-pressed="!isVideoEnabled"
           @click="webrtc.toggleVideo"
       >
-        {{ isVideoEnabled ? 'Video off' : 'Video on' }}
+        Video
       </button>
 
       <button class="btn pill danger" type="button" @click="exitMeet">Leave</button>

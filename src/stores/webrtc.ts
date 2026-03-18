@@ -11,8 +11,8 @@ export const useWebRTCStore = defineStore('webrtc', () => {
   const clients = ref<string[]>([])
   const roomID = ref('')
   const started = ref(false)
-  const isAudioEnabled = ref(true)
-  const isVideoEnabled = ref(true)
+  const isAudioEnabled = ref(false)
+  const isVideoEnabled = ref(false)
 
   let peerConnections: Record<string, RTCPeerConnection> = {}
   let peerMediaElements: Record<string, HTMLVideoElement | null> = { [LOCAL_VIDEO]: null }
@@ -65,7 +65,9 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     applyLocalTrackStates()
   }
 
-  async function handleNewPeer({ peerID, createOffer }: { peerID: string; createOffer: boolean }) {
+  async function handleNewPeer(
+    { peerID, createOffer }: { peerID: string; createOffer: boolean }
+  ) {
     if (peerID in peerConnections) {
       console.warn(`Already connected to peer ${peerID}`)
       return
@@ -90,7 +92,6 @@ export const useWebRTCStore = defineStore('webrtc', () => {
       const [remoteStream] = event.streams
       tracksNumber += 1
 
-      // Audio + video arrive as separate tracks.
       if (tracksNumber === 2) {
         tracksNumber = 0
         if (!remoteStream) return
@@ -173,14 +174,8 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     attachLocalStreamIfPossible()
   }
 
-  async function join(nextRoomID: unknown, { name }: { name: string }) {
-    if (!nextRoomID) return
-
-    const next = String(nextRoomID)
-    if (started.value && roomID.value === next) return
-    if (started.value) leave()
-
-    roomID.value = next
+  async function join(nextRoomID: string, name: string) {
+    roomID.value = nextRoomID
     started.value = true
     running = true
 
@@ -188,15 +183,13 @@ export const useWebRTCStore = defineStore('webrtc', () => {
 
     try {
       await startCapture()
-      socket.emit(SocketActions.JOIN, { room: roomID.value, name: name ?? '' })
+      socket.emit(SocketActions.JOIN, { roomID: roomID.value, name })
     } catch (e) {
       console.error('Error getting userMedia:', e)
     }
   }
 
   function leave() {
-    if (!started.value) return
-
     running = false
     started.value = false
 

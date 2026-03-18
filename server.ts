@@ -5,12 +5,13 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import { validate, version } from 'uuid'
 
-import { SocketActions } from './src/socket/actions.js'
+import { SocketActions, type RoomSummary, type ShareRoomsPayload } from './src/socket/actions.js'
 
 const app = express()
 const server = createServer(app)
 const io = new Server(server, {
-  cors: { origin: true,
+  cors: {
+    origin: true,
     methods: ['GET', 'POST'],
   },
 })
@@ -21,26 +22,25 @@ const distDir = path.join(rootDir, 'dist')
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(distDir))
-
-  app.get(/.*/, (req, res) => res.sendFile(path.join(distDir, 'index.html')))
+  app.get(/.*/, (_req, res) => res.sendFile(path.join(distDir, 'index.html')))
 } else {
-  app.get('/', (req, res) => {
+  app.get('/', (_req, res) => {
     res.send('API is running..')
   })
 }
 
-const roomNameById = new Map()
+const roomNameById = new Map<string, string>()
 
-function getRooms() {
+function getRooms(): string[] {
   const { rooms } = io.sockets.adapter
   return Array.from(rooms.keys()).filter((roomID) => validate(roomID) && version(roomID) === 4)
 }
 
 function shareRooms() {
   const roomIDs = getRooms()
-  const nextRoomNameById = new Map()
+  const nextRoomNameById = new Map<string, string>()
 
-  const rooms = roomIDs.map((id) => {
+  const rooms: RoomSummary[] = roomIDs.map((id) => {
     const name = roomNameById.get(id) || ''
     nextRoomNameById.set(id, name)
     return { id, name }
@@ -49,14 +49,14 @@ function shareRooms() {
   roomNameById.clear()
   for (const [id, name] of nextRoomNameById.entries()) roomNameById.set(id, name)
 
-  io.emit(SocketActions.SHARE_ROOMS, { rooms })
+  io.emit(SocketActions.SHARE_ROOMS, { rooms } satisfies ShareRoomsPayload)
 }
 
 io.on('connection', (socket) => {
   shareRooms()
   console.log('socket connected')
 
-  socket.on(SocketActions.JOIN, (config) => {
+  socket.on(SocketActions.JOIN, (config: { room: string; name?: string }) => {
     const roomId = config.room
     const { rooms } = socket
 
@@ -64,7 +64,7 @@ io.on('connection', (socket) => {
       return console.warn(`Room ${roomId} is already in room`)
     }
 
-    roomNameById.set(roomId, config.name)
+    roomNameById.set(roomId, config.name ?? '')
 
     const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
 
@@ -93,20 +93,20 @@ io.on('connection', (socket) => {
     Array.from(rooms)
       .filter((roomId) => roomId !== socket.id)
       .forEach((roomId) => {
-      const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+        const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
 
-      clientsIDs.forEach((clientID) => {
-        io.to(clientID).emit(SocketActions.REMOVE_PEER, {
-          peerID: socket.id,
+        clientsIDs.forEach((clientID) => {
+          io.to(clientID).emit(SocketActions.REMOVE_PEER, {
+            peerID: socket.id,
+          })
+
+          socket.emit(SocketActions.REMOVE_PEER, {
+            peerID: clientID,
+          })
         })
 
-        socket.emit(SocketActions.REMOVE_PEER, {
-          peerID: clientID,
-        })
+        socket.leave(roomId)
       })
-
-      socket.leave(roomId)
-    })
 
     shareRooms()
   }

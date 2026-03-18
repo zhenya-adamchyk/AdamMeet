@@ -1,38 +1,38 @@
-<script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { v4 } from 'uuid';
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { v4 } from 'uuid'
 
-import socket from '../socket';
-import {SocketActions} from "@/socket/actions.js";
+import socket from '@/socket'
+import { SocketActions, type ShareRoomsPayload, type RoomSummary } from '@/socket/actions'
 
-const router = useRouter();
-const rooms = ref([]);
-const newRoomName = ref('');
+const router = useRouter()
+const rooms = ref<RoomSummary[]>([])
+const newRoomName = ref('')
 
-function joinRoom(room) {
-  router.push({ path: `/room/${room.id}`, query: { name: room.name } });
+function joinRoom(room: RoomSummary) {
+  router.push({ path: `/room/${room.id}`, query: { name: room.name } })
 }
 
 function createRoom() {
-  const id = v4();
-  const name = newRoomName.value.trim();
-  if (!name) return;
-  router.push({ path: `/room/${id}`, query: { name } });
-  newRoomName.value = '';
+  const id = v4()
+  const name = newRoomName.value.trim()
+  if (!name) return
+  router.push({ path: `/room/${id}`, query: { name } })
+  newRoomName.value = ''
 }
 
-function handleShareRooms({ rooms: nextRooms = [] } = {}) {
-  rooms.value = nextRooms;
+function handleShareRooms(payload: ShareRoomsPayload) {
+  rooms.value = payload?.rooms ?? []
 }
 
 onMounted(() => {
-  socket.on(SocketActions.SHARE_ROOMS, handleShareRooms);
-});
+  socket.on(SocketActions.SHARE_ROOMS, handleShareRooms)
+})
 
 onBeforeUnmount(() => {
-  socket.off(SocketActions.SHARE_ROOMS, handleShareRooms);
-});
+  socket.off(SocketActions.SHARE_ROOMS, handleShareRooms)
+})
 </script>
 
 <template>

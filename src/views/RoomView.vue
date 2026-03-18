@@ -1,56 +1,66 @@
-<script setup>
-import { computed, onBeforeUnmount, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useRoute, useRouter } from 'vue-router';
+<script setup lang="ts">
+import { computed, onBeforeUnmount, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useRoute, useRouter } from 'vue-router'
 
-import { useWebRTCStore, LOCAL_VIDEO } from '../stores/webrtc';
+import { useWebRTCStore, LOCAL_VIDEO } from '../stores/webrtc'
 import { useDeviceStore } from '../stores/device'
 
-function layout(clientsNumber = 1) {
-  if (!clientsNumber) return [];
-  const gap = 12;
+type LayoutItem = { width: string; height: string }
 
-  const cols = clientsNumber === 1 ? 1 : Math.ceil(Math.sqrt(clientsNumber));
-  const rows = Math.ceil(clientsNumber / cols) || 1;
+function layout(clientsNumber = 1): LayoutItem[] {
+  if (!clientsNumber) return []
+  const gap = 12
 
-  const height = `calc((100% - ${(rows - 1) * gap}px) / ${rows})`;
-  const width = `calc((100% - ${(cols - 1) * gap}px) / ${cols})`;
+  const cols = clientsNumber === 1 ? 1 : Math.ceil(Math.sqrt(clientsNumber))
+  const rows = Math.ceil(clientsNumber / cols) || 1
 
-  return Array.from({ length: clientsNumber }, () => ({ width, height }));
+  const height = `calc((100% - ${(rows - 1) * gap}px) / ${rows})`
+  const width = `calc((100% - ${(cols - 1) * gap}px) / ${cols})`
+
+  return Array.from({ length: clientsNumber }, () => ({ width, height }))
 }
 
-const route = useRoute();
-const router = useRouter();
-const roomID = computed(() => route.params.id);
-const roomName = computed(() => route.query?.name);
-const webrtc = useWebRTCStore();
+const route = useRoute()
+const router = useRouter()
+
+const roomID = computed(() => {
+  const id = route.params.id
+  return (Array.isArray(id) ? id[0] : id) ?? ''
+})
+
+const roomName = computed(() => {
+  const name = route.query?.name
+  return (Array.isArray(name) ? name[0] : name) ?? ''
+})
+
+const webrtc = useWebRTCStore()
 const device = useDeviceStore()
-const { isAudioEnabled, isVideoEnabled, started } = storeToRefs(webrtc);
+const { clients, isAudioEnabled, isVideoEnabled, started } = storeToRefs(webrtc)
 const { isMobile } = storeToRefs(device)
 
 watch(
-    [roomID, roomName],
-    ([id, name]) => {
-      webrtc.join(id, { name });
-    },
-    { immediate: true }
-);
+  [roomID, roomName],
+  ([id, name]) => {
+    webrtc.join(id, { name })
+  },
+  { immediate: true },
+)
 
 onBeforeUnmount(() => {
-  webrtc.leave();
-});
+  webrtc.leave()
+})
 
 function exitMeet() {
-  webrtc.leave();
-  router.push('/');
+  webrtc.leave()
+  router.push('/')
 }
 
-const clients = computed(() => webrtc.clients);
-const remoteClients = computed(() => webrtc.clients.filter((id) => id !== LOCAL_VIDEO));
-const showLocalPreview = computed(() => started.value && remoteClients.value.length > 0);
-const gridClients = computed(() => (showLocalPreview.value ? remoteClients.value : clients.value));
-const provideMediaRef = webrtc.provideMediaRef;
-const videoLayout = computed(() => layout(gridClients.value.length));
+const remoteClients = computed(() => clients.value.filter((id) => id !== LOCAL_VIDEO))
+const showLocalPreview = computed(() => started.value && remoteClients.value.length > 0)
+const gridClients = computed(() => (showLocalPreview.value ? remoteClients.value : clients.value))
+const provideMediaRef = webrtc.provideMediaRef
+const videoLayout = computed(() => layout(gridClients.value.length))
 </script>
 
 <template>
@@ -70,7 +80,7 @@ const videoLayout = computed(() => layout(gridClients.value.length));
             autoplay
             playsinline
             :muted="clientID === LOCAL_VIDEO"
-            :ref="(el) => provideMediaRef(clientID, el)"
+            :ref="(el) => provideMediaRef(clientID, el as HTMLVideoElement | null)"
         />
       </div>
     </div>
@@ -87,7 +97,7 @@ const videoLayout = computed(() => layout(gridClients.value.length));
             autoplay
             playsinline
             :muted="clientID === LOCAL_VIDEO"
-            :ref="(el) => provideMediaRef(clientID, el)"
+            :ref="(el) => provideMediaRef(clientID, el as HTMLVideoElement | null)"
         />
       </div>
     </div>
@@ -98,7 +108,7 @@ const videoLayout = computed(() => layout(gridClients.value.length));
         autoplay
         playsinline
         muted
-        :ref="(el) => provideMediaRef(LOCAL_VIDEO, el)"
+        :ref="(el) => provideMediaRef(LOCAL_VIDEO, el as HTMLVideoElement | null)"
     />
 
     <div class="controls" role="group" aria-label="Call controls">

@@ -1,6 +1,6 @@
-import { io } from 'socket.io-client'
+import { io, type ManagerOptions, type SocketOptions } from 'socket.io-client'
 
-const options = {
+const options: Partial<ManagerOptions & SocketOptions> = {
   forceNew: true,
   reconnection: true,
   reconnectionAttempts: 5,

@@ -6,19 +6,25 @@ import { v4 } from 'uuid'
 import socket from '@/socket'
 import { SocketActions } from '@/socket/actions'
 import { Room } from '@/interfaces/index'
+import { useWebRTCStore } from '../stores/webrtc'
+import { storeToRefs } from 'pinia'
+
+const webrtc = useWebRTCStore()
+
+const { localUserName } = storeToRefs(webrtc)
 
 const router = useRouter()
 const rooms = ref<Room[]>([])
 const newRoomName = ref('')
 
 function joinRoom(room: Room) {
-  router.push({ path: `/room/${room.id}`, query: { name: room.name } })
+  router.push({ path: `/room/${room.id}`, query: { name: room.name, userName: localUserName.value } })
 }
 
 function createRoom() {
   const id = v4()
   if (!newRoomName.value) return
-  router.push({ path: `/room/${id}`, query: { name: newRoomName.value } })
+  router.push({ path: `/room/${id}`, query: { name: newRoomName.value, userName: localUserName.value } })
 }
 
 function handleShareRooms(payload: { rooms: Room[] }) {
@@ -44,6 +50,14 @@ onBeforeUnmount(() => {
         </div>
         <div class="create">
           <input
+            v-model.trim="localUserName"
+            class="input"
+            type="text"
+            placeholder="Name"
+            required
+            maxlength="20"
+          />
+          <input
             v-model.trim="newRoomName"
             class="input"
             type="text"
@@ -51,7 +65,7 @@ onBeforeUnmount(() => {
             required
             maxlength="20"
           />
-          <button class="btn primary" type="button" :disabled="!newRoomName" @click="createRoom">
+          <button class="btn primary" type="button" :disabled="!newRoomName || !localUserName" @click="createRoom">
             Create New Room
           </button>
         </div>
@@ -67,7 +81,7 @@ onBeforeUnmount(() => {
             <span class="roomLabel">Room name</span>
             <span class="roomTitle">{{ room.name }}</span>
           </div>
-          <button class="btn" type="button" @click="joinRoom(room)">Join</button>
+          <button class="btn" :disabled="!localUserName" type="button" @click="joinRoom(room)">Join</button>
         </li>
       </ul>
     </div>

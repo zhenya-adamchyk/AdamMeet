@@ -28,14 +28,16 @@ function singleString(value: string | string[]): string {
 }
 
 const roomID = singleString(route.params.id)
-const roomName = singleString(route.query?.name)
+const roomName = singleString(route.query.name)
+const userName = singleString(route.query.userName)
 
 const webrtc = useWebRTCStore()
 const device = useDeviceStore()
+
 const { clients, isAudioEnabled, isVideoEnabled, started } = storeToRefs(webrtc)
 const { isMobile } = storeToRefs(device)
 
-webrtc.join(roomID, roomName)
+webrtc.join(roomID, roomName, userName)
 
 onBeforeUnmount(() => {
   webrtc.leave()
@@ -46,7 +48,7 @@ function exitMeet() {
   router.push('/')
 }
 
-const remoteClients = computed(() => clients.value.filter((id) => id !== LOCAL_VIDEO))
+const remoteClients = computed(() => clients.value.filter((c) => c.id !== LOCAL_VIDEO))
 const showLocalPreview = computed(() => started.value && remoteClients.value.length > 0)
 const gridClients = computed(() => (showLocalPreview.value ? remoteClients.value : clients.value))
 const provideMediaRef = webrtc.provideMediaRef
@@ -61,33 +63,36 @@ const videoLayout = computed(() => layout(gridClients.value.length))
         :class="{ single: (remoteClients.length ? remoteClients.length : clients.length) <= 1 }"
     >
       <div
-          v-for="clientID in (remoteClients.length ? remoteClients : clients)"
-          :key="clientID"
+          v-for="client in (remoteClients.length ? remoteClients : clients)"
+          :key="client.id"
           class="mobileTile"
       >
+        <div v-if="!isVideoEnabled" class="nameTag">{{ client.userName }}</div>
         <video
             class="video"
             autoplay
             playsinline
-            :muted="clientID === LOCAL_VIDEO"
-            :ref="(el) => provideMediaRef(clientID, el as HTMLVideoElement | null)"
+            :muted="client.id === LOCAL_VIDEO"
+            :ref="(el) => provideMediaRef(client.id, el as HTMLVideoElement | null)"
         />
       </div>
     </div>
 
     <div v-else class="roomGrid">
       <div
-          v-for="(clientID, index) in gridClients"
-          :key="clientID"
-          :id="clientID"
+          v-for="(client, index) in gridClients"
+          :key="client.id"
+          :id="client.id"
+          class="tile"
           :style="videoLayout[index]"
       >
+        <div v-if="!isVideoEnabled" class="nameTag">{{ client.userName }}</div>
         <video
             class="video"
             autoplay
             playsinline
-            :muted="clientID === LOCAL_VIDEO"
-            :ref="(el) => provideMediaRef(clientID, el as HTMLVideoElement | null)"
+            :muted="client.id === LOCAL_VIDEO"
+            :ref="(el) => provideMediaRef(client.id, el as HTMLVideoElement | null)"
         />
       </div>
     </div>
@@ -148,6 +153,11 @@ const videoLayout = computed(() => layout(gridClients.value.length))
   align-content: center;
 }
 
+.tile {
+  display: grid;
+  transition: width 220ms ease, height 220ms ease;
+}
+
 .mobileGrid {
   width: 100%;
   height: 100%;
@@ -167,6 +177,7 @@ const videoLayout = computed(() => layout(gridClients.value.length))
 }
 
 .mobileTile {
+  display: grid;
   border-radius: 18px;
   overflow: hidden;
   width: 100%;
@@ -174,11 +185,27 @@ const videoLayout = computed(() => layout(gridClients.value.length))
   scroll-snap-align: start;
 }
 
+.nameTag {
+  grid-area: 1 / 1;
+  place-self: center;
+  z-index: 2;
+  padding: 10px 14px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mobileTile .video {
   border-radius: 0;
 }
 
 .video {
+  grid-area: 1 / 1;
   width: 100%;
   height: 100%;
   border-radius: 30px;

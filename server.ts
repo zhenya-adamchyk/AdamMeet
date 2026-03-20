@@ -31,6 +31,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const roomNameById = new Map<string, string>()
+const userNameBySocketId = new Map<string, string>()
 
 function getRooms(): string[] {
   const { rooms } = io.sockets.adapter
@@ -48,7 +49,9 @@ function shareRooms() {
   })
 
   roomNameById.clear()
-  for (const [id, name] of nextRoomNameById.entries()) roomNameById.set(id, name)
+  for (const [id, name] of nextRoomNameById.entries()) {
+    roomNameById.set(id, name)
+  }
 
   io.emit(SocketActions.SHARE_ROOMS, { rooms })
 }
@@ -57,8 +60,8 @@ io.on('connection', (socket) => {
   shareRooms()
   console.log('socket connected')
 
-  socket.on(SocketActions.JOIN, (config: { roomID: string; name: string }) => {
-    const { roomID, name } = config
+  socket.on(SocketActions.JOIN, (config: { roomID: string; name: string; userName: string }) => {
+    const { roomID, name, userName } = config
     const { rooms } = socket
 
     if (Array.from(rooms).includes(roomID)) {
@@ -66,6 +69,7 @@ io.on('connection', (socket) => {
     }
 
     roomNameById.set(roomID, name)
+    userNameBySocketId.set(socket.id, userName)
 
     const clientsIDs = Array.from(io.sockets.adapter.rooms.get(roomID) || [])
 
@@ -73,11 +77,13 @@ io.on('connection', (socket) => {
       io.to(clientID).emit(SocketActions.ADD_PEER, {
         peerID: socket.id,
         createOffer: false,
+        userName,
       })
 
       socket.emit(SocketActions.ADD_PEER, {
         peerID: clientID,
         createOffer: true,
+        userName: userNameBySocketId.get(clientID)!,
       })
     })
 
@@ -109,6 +115,7 @@ io.on('connection', (socket) => {
         socket.leave(roomId)
       })
 
+    userNameBySocketId.delete(socket.id)
     shareRooms()
   }
 

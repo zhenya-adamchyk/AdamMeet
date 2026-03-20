@@ -8,20 +8,27 @@ import { SocketActions } from '@/socket/actions'
 export const LOCAL_VIDEO = 'LOCAL_VIDEO'
 
 export const useWebRTCStore = defineStore('webrtc', () => {
-  const clients = ref<string[]>([])
+  const clients = ref<{ id: string; userName: string }[]>([])
   const roomID = ref('')
   const started = ref(false)
   const isAudioEnabled = ref(false)
   const isVideoEnabled = ref(false)
+  const localUserName = ref('')
 
   let peerConnections: Record<string, RTCPeerConnection> = {}
   let peerMediaElements: Record<string, HTMLVideoElement | null> = { [LOCAL_VIDEO]: null }
   let localMediaStream: MediaStream | null = null
   let running = false
 
-  const addClient = (id: string) => {
-    if (!clients.value.includes(id)) {
-      clients.value.push(id)
+  const addClient = (id: string, userName: string) => {
+    const idx = clients.value.findIndex((c) => c.id === id)
+    if (idx === -1) {
+      clients.value.push({ id, userName })
+      return
+    }
+
+    if (clients.value[idx]!.userName !== userName) {
+      clients.value[idx] = { ...clients.value[idx]!, userName }
     }
   }
 
@@ -66,12 +73,14 @@ export const useWebRTCStore = defineStore('webrtc', () => {
   }
 
   async function handleNewPeer(
-    { peerID, createOffer }: { peerID: string; createOffer: boolean }
+    { peerID, createOffer, userName }: { peerID: string; createOffer: boolean; userName: string }
   ) {
     if (peerID in peerConnections) {
       console.warn(`Already connected to peer ${peerID}`)
       return
     }
+
+    addClient(peerID, userName)
 
     const pc = new RTCPeerConnection({
       iceServers: freeice(),
@@ -87,17 +96,12 @@ export const useWebRTCStore = defineStore('webrtc', () => {
       }
     }
 
-    let tracksNumber = 0
     pc.ontrack = (event: RTCTrackEvent) => {
       const [remoteStream] = event.streams
-      tracksNumber += 1
 
-      if (tracksNumber === 2) {
-        tracksNumber = 0
-        if (!remoteStream) return
-        addClient(peerID)
-        attachStream(peerID, remoteStream)
-      }
+      if (!remoteStream) return
+
+      attachStream(peerID, remoteStream)
     }
 
     localMediaStream?.getTracks().forEach((track) => {
@@ -146,7 +150,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     delete peerConnections[peerID]
     delete peerMediaElements[peerID]
 
-    clients.value = clients.value.filter((c) => c !== peerID)
+    clients.value = clients.value.filter((c) => c.id !== peerID)
   }
 
   const bindSocketHandlers = () => {
@@ -170,20 +174,21 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     })
 
     applyLocalTrackStates()
-    addClient(LOCAL_VIDEO)
-    attachLocalStreamIfPossible()
   }
 
-  async function join(nextRoomID: string, name: string) {
+  async function join(nextRoomID: string, name: string, userName: string) {
     roomID.value = nextRoomID
     started.value = true
     running = true
+    localUserName.value = userName
 
     bindSocketHandlers()
 
     try {
       await startCapture()
-      socket.emit(SocketActions.JOIN, { roomID: roomID.value, name })
+      addClient(LOCAL_VIDEO, localUserName.value)
+      attachLocalStreamIfPossible()
+      socket.emit(SocketActions.JOIN, { roomID: roomID.value, name, userName })
     } catch (e) {
       console.error('Error getting userMedia:', e)
     }
@@ -192,6 +197,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
   function leave() {
     running = false
     started.value = false
+    localUserName.value = ''
 
     unbindSocketHandlers()
 
@@ -231,6 +237,7 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     started,
     isAudioEnabled,
     isVideoEnabled,
+    localUserName,
     join,
     leave,
     provideMediaRef,

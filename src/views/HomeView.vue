@@ -23,7 +23,9 @@ function joinRoom(room: Room) {
 
 function createRoom() {
   const id = v4()
-  if (!newRoomName.value) return
+  if (!newRoomName.value) {
+    return
+  }
   router.push({ path: `/room/${id}`, query: { name: newRoomName.value, userName: localUserName.value } })
 }
 

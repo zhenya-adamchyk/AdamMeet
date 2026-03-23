@@ -11,8 +11,8 @@ export const useWebRTCStore = defineStore('webrtc', () => {
   const clients = ref<{ id: string; userName: string }[]>([])
   const roomID = ref('')
   const started = ref(false)
-  const isAudioEnabled = ref(false)
-  const isVideoEnabled = ref(false)
+  const isAudioEnabled = ref(true)
+  const isVideoEnabled = ref(true)
   const localUserName = ref('')
 
   let peerConnections: Record<string, RTCPeerConnection> = {}
@@ -40,7 +40,10 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     }
 
     const interval = setInterval(() => {
-      if (!running) return clearInterval(interval)
+      if (!running) {
+        clearInterval(interval)
+        return
+      }
       const node = peerMediaElements[id]
       if (node) {
         node.srcObject = stream
@@ -51,13 +54,19 @@ export const useWebRTCStore = defineStore('webrtc', () => {
 
   const attachLocalStreamIfPossible = () => {
     const el = peerMediaElements[LOCAL_VIDEO]
-    if (!el || !localMediaStream) return
+    if (!el || !localMediaStream) {
+      return
+    }
     el.volume = 0
-    if (el.srcObject !== localMediaStream) el.srcObject = localMediaStream
+    if (el.srcObject !== localMediaStream) {
+      el.srcObject = localMediaStream
+    }
   }
 
   const applyLocalTrackStates = () => {
-    if (!localMediaStream) return
+    if (!localMediaStream) {
+      return
+    }
     localMediaStream.getAudioTracks().forEach((t) => (t.enabled = isAudioEnabled.value))
     localMediaStream.getVideoTracks().forEach((t) => (t.enabled = isVideoEnabled.value))
   }
@@ -99,13 +108,17 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     pc.ontrack = (event: RTCTrackEvent) => {
       const [remoteStream] = event.streams
 
-      if (!remoteStream) return
+      if (!remoteStream) {
+        return
+      }
 
       attachStream(peerID, remoteStream)
     }
 
     localMediaStream?.getTracks().forEach((track) => {
-      if (!localMediaStream) return
+      if (!localMediaStream) {
+        return
+      }
       pc.addTrack(track, localMediaStream)
     })
 
@@ -125,7 +138,9 @@ export const useWebRTCStore = defineStore('webrtc', () => {
     sessionDescription: remoteDescription,
   }: { peerID: string; sessionDescription: RTCSessionDescriptionInit }) {
     const pc = peerConnections[peerID]
-    if (!pc) return
+    if (!pc) {
+      return
+    }
 
     await pc.setRemoteDescription(new RTCSessionDescription(remoteDescription))
 
@@ -222,7 +237,9 @@ export const useWebRTCStore = defineStore('webrtc', () => {
   }
 
   function provideMediaRef(id: string, node: HTMLVideoElement | null) {
-    if (!node) return
+    if (!node) {
+      return
+    }
 
     peerMediaElements[id] = node
 

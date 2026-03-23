@@ -2,10 +2,12 @@ import express from 'express'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'http'
-import { Server } from 'socket.io'
+import { Server, type Socket } from 'socket.io'
+import { randomUUID } from 'node:crypto'
 import { validate, version } from 'uuid'
 
-import { SocketActions } from './src/socket/actions.js'
+import { ChatSocketActions, SocketActions } from './src/socket/actions/index.js'
+import type { ChatMessage } from './src/interfaces/chat.js'
 import { Room } from './src/interfaces/rooms.js'
 
 const app = express()
@@ -32,6 +34,14 @@ if (process.env.NODE_ENV === 'production') {
 
 const roomNameById = new Map<string, string>()
 const userNameBySocketId = new Map<string, string>()
+
+const CHAT_MAX_LEN = 2000
+
+const chatHistoryByRoom = new Map<string, ChatMessage[]>()
+
+function meetRoomIdsForSocket(socket: Socket): string[] {
+  return Array.from(socket.rooms).filter((id) => id !== socket.id && validate(id) && version(id) === 4)
+}
 
 function getRooms(): string[] {
   const { rooms } = io.sockets.adapter
@@ -65,7 +75,8 @@ io.on('connection', (socket) => {
     const { rooms } = socket
 
     if (Array.from(rooms).includes(roomID)) {
-      return console.warn(`Room ${roomID} is already in room`)
+      console.warn(`Room ${roomID} is already in room`)
+      return
     }
 
     roomNameById.set(roomID, name)
@@ -88,6 +99,8 @@ io.on('connection', (socket) => {
     })
 
     socket.join(roomID)
+    const history = chatHistoryByRoom.get(roomID)
+    socket.emit(ChatSocketActions.HISTORY, { messages: history ? [...history] : [] })
     shareRooms()
   })
 
@@ -113,6 +126,10 @@ io.on('connection', (socket) => {
         })
 
         socket.leave(roomId)
+        const stillThere = io.sockets.adapter.rooms.get(roomId)
+        if (!stillThere || stillThere.size === 0) {
+          chatHistoryByRoom.delete(roomId)
+        }
       })
 
     userNameBySocketId.delete(socket.id)
@@ -131,6 +148,40 @@ io.on('connection', (socket) => {
       peerID: socket.id,
       iceCandidate,
     })
+  })
+
+  socket.on(ChatSocketActions.SEND, ({ text }: { text?: string }) => {
+    const userName = userNameBySocketId.get(socket.id)
+    if (!userName || typeof text !== 'string') {
+      return
+    }
+
+    const trimmed = text.trim().slice(0, CHAT_MAX_LEN)
+    if (!trimmed) {
+      return
+    }
+
+    const roomIds = meetRoomIdsForSocket(socket)
+    if (!roomIds.length) {
+      return
+    }
+
+    const payload: ChatMessage = {
+      id: randomUUID(),
+      userName,
+      text: trimmed,
+      ts: Date.now(),
+    }
+
+    for (const roomId of roomIds) {
+      const list = chatHistoryByRoom.get(roomId)
+      if (list) {
+        list.push(payload)
+      } else {
+        chatHistoryByRoom.set(roomId, [payload])
+      }
+      io.to(roomId).emit(ChatSocketActions.MESSAGE, payload)
+    }
   })
 })
 

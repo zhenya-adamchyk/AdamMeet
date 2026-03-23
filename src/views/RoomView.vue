@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 
+import RoomChatPanel from '../components/RoomChatPanel.vue'
+import { useChatStore } from '../stores/chat'
 import { useWebRTCStore, LOCAL_VIDEO } from '../stores/webrtc'
 import { useDeviceStore } from '../stores/device'
 
 function layout(clientsNumber = 1): { width: string; height: string }[] {
-  if (!clientsNumber) return []
+  if (!clientsNumber) {
+    return []
+  }
   const gap = 12
 
   const cols = clientsNumber === 1 ? 1 : Math.ceil(Math.sqrt(clientsNumber))
@@ -32,14 +36,24 @@ const roomName = singleString(route.query.name)
 const userName = singleString(route.query.userName)
 
 const webrtc = useWebRTCStore()
+const chat = useChatStore()
 const device = useDeviceStore()
+
+chat.start()
 
 const { clients, isAudioEnabled, isVideoEnabled, started } = storeToRefs(webrtc)
 const { isMobile } = storeToRefs(device)
 
+const chatOpen = ref(false)
+
 webrtc.join(roomID, roomName, userName)
 
+function toggleChat() {
+  chatOpen.value = !chatOpen.value
+}
+
 onBeforeUnmount(() => {
+  chat.stop()
   webrtc.leave()
 })
 
@@ -67,7 +81,7 @@ const videoLayout = computed(() => layout(gridClients.value.length))
           :key="client.id"
           class="mobileTile"
       >
-        <div v-if="!isVideoEnabled" class="nameTag">{{ client.userName }}</div>
+        <div class="nameTag">{{ client.userName }}</div>
         <video
             class="video"
             autoplay
@@ -86,7 +100,7 @@ const videoLayout = computed(() => layout(gridClients.value.length))
           class="tile"
           :style="videoLayout[index]"
       >
-        <div v-if="!isVideoEnabled" class="nameTag">{{ client.userName }}</div>
+        <div class="nameTag">{{ client.userName }}</div>
         <video
             class="video"
             autoplay
@@ -129,8 +143,19 @@ const videoLayout = computed(() => layout(gridClients.value.length))
         Video
       </button>
 
+      <button
+          class="btn pill"
+          type="button"
+          :aria-pressed="chatOpen"
+          @click="toggleChat"
+      >
+        Chat
+      </button>
+
       <button class="btn pill danger" type="button" @click="exitMeet">Leave</button>
     </div>
+
+    <RoomChatPanel v-model="chatOpen" />
   </div>
 </template>
 
@@ -187,7 +212,7 @@ const videoLayout = computed(() => layout(gridClients.value.length))
 
 .nameTag {
   grid-area: 1 / 1;
-  place-self: center;
+  place-self: end start;
   z-index: 2;
   padding: 10px 14px;
   font-size: 20px;
@@ -229,6 +254,8 @@ const videoLayout = computed(() => layout(gridClients.value.length))
   bottom: 20px;
   transform: translateX(-50%);
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
   padding: 10px;
   border-radius: 999px;

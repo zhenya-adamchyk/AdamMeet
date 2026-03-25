@@ -6,3 +6,8 @@ declare module '*.vue' {
   export default component
 }
 
+declare module 'freeice' {
+  const freeice: () => RTCIceServer[]
+  export default freeice
+}
+

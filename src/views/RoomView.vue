@@ -26,7 +26,7 @@ function layout(clientsNumber = 1): { width: string; height: string }[] {
 const route = useRoute()
 const router = useRouter()
 
-function singleString(value: string | string[]): string {
+function singleString(value: unknown): string {
   const v = Array.isArray(value) ? value[0] : value
   return String(v)
 }
